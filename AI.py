@@ -7,7 +7,7 @@ __author__ = 'AmirHS'
 
 class AI():
     def do_turn(self, world):
-        fishes = world.fishes
+        fishes = world.get_fishes_list()
         for fish in fishes:
             if randint(0, 100) % 3 == 0:
                 world.change_color(fish)

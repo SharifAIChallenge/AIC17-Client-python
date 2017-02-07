@@ -1,4 +1,4 @@
-from aetypes import Enum
+from enum import Enum
 
 import time
 
@@ -78,6 +78,7 @@ class World:
         self.foods = dict()
         self.trashes = dict()
         self.nets = dict()
+        self.game_map = [[]]
         self.teleports = []
         self.turn_number = 0
         self.scores = []
@@ -160,23 +161,29 @@ class World:
         diffs = msg[Constants.KEY_ARGS][2]
         for diff in diffs:
             self._handle_diff(diff)
+        self._rebuild_game_map()
 
     def _handle_diff(self, diff):
+     #   print(diff)
         diff_type = diff[Constants.KEY_TYPE]
-        diff_args = diff[Constants.KEY_ARGS]
+        diff_args_list = diff[Constants.KEY_ARGS]
         if diff_type == Constants.CHANGE_TYPE_ADD:
-            self._handle_add_diff(diff_args)
+            for diff_args in diff_args_list:
+                self._handle_add_diff(diff_args)
         elif diff_type == Constants.CHANGE_TYPE_DEL:
-            self._handle_delete_diff(diff_args)
+            for diff_args in diff_args_list:
+                self._handle_delete_diff(diff_args)
         elif diff_type == Constants.CHANGE_TYPE_MOV:
-            item_game_id = diff_args[0]
-            if item_game_id in self.fishes:
-                self.fishes[item_game_id].move(diff_args[1])
+            for diff_args in diff_args_list:
+                item_game_id = diff_args[0]
+                if item_game_id in self.fishes:
+                    self.fishes[item_game_id].move(diff_args[1])
         else:
-            item_game_id = diff_args[0]
-            if item_game_id in self.fishes:
-                self.fishes[item_game_id].color = diff_args[1]
-                self.fishes[item_game_id].sick = diff_args[2]
+            for diff_args in diff_args_list:
+                item_game_id = diff_args[0]
+                if item_game_id in self.fishes:
+                    self.fishes[item_game_id].color = diff_args[1]
+                    self.fishes[item_game_id].sick = diff_args[2]
 
     def _handle_delete_diff(self, diff_args):
         item_game_id = diff_args[0]
@@ -190,17 +197,34 @@ class World:
             self.nets.pop(item_game_id, None)
 
     def _handle_add_diff(self, diff_args):
+     #   print(diff_args)
         entity_type = diff_args[1]
         item_game_id = diff_args[0]
         if entity_type == 0:
             self.fishes[item_game_id] = Fish(
                 [diff_args[0], diff_args[2], diff_args[3], diff_args[4], diff_args[5], diff_args[6], 0, diff_args[7]])
         elif entity_type == 1:
-            self.fishes[item_game_id] = Food([diff_args[0], diff_args[2], diff_args[3]])
+            self.foods[item_game_id] = Food([diff_args[0], diff_args[2], diff_args[3]])
         elif entity_type == 2:
             self.trashes[item_game_id] = Trash([diff_args[0], diff_args[2], diff_args[3]])
         else:
             self.nets[item_game_id] = Net([diff_args[0], diff_args[2], diff_args[3]])
+
+    def _rebuild_game_map(self):
+        self.game_map = [[0 for x in range(self.col_number)] for y in range(self.row_number)]
+        for fish in self.get_fishes_list():
+            self.game_map[fish.row][fish.col] = fish
+        for net in self.get_nets_list():
+            self.game_map[net.row][net.col] = net
+        for trash in self.get_trashes_list():
+            self.game_map[trash.row][trash.col] = trash
+        for food in self.get_foods_list():
+            self.game_map[food.row][food.col] = food
+        # TODO: add teleports to map
+        # for teleport in self.get_teleport_list():
+        #     print(teleport.source_row, teleport.source_col, teleport.destination_row, teleport.destination_col)
+        #     self.game_map[teleport.source_row][teleport.source_col] = teleport
+        #     self.game_map[teleport.destination_row][teleport.destination_col] = teleport
 
     # Client APIs
 
@@ -211,13 +235,13 @@ class World:
         return self.turn_timeout - self.get_turn_time_passed()
 
     def change_strategy(self, color, front_right, front, front_left, new_strategy):
-        self.queue.put(Event('s', [color, front_right, front, front_left, new_strategy]))
+        self.queue.put(Event('s', [[color, front_right, front, front_left, new_strategy]]))
 
     def selective_move(self, fish, move):
-        self.queue.put(Event('m', [fish.game_id, move]))
+        self.queue.put(Event('m', [[fish.game_id, move.value]]))
 
     def change_color(self, fish):
-        self.queue.put(Event('c', [fish.game_id, 1 - fish.color]))
+        self.queue.put(Event('c', [[fish.game_id, 1 - fish.color]]))
 
     def get_fishes_list(self):
         return self.fishes.values()
@@ -233,6 +257,9 @@ class World:
 
     def get_teleport_list(self):
         return self.teleports
+
+    def get_game_map(self):
+        return self.game_map
 
 
 class Event:

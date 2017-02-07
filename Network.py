@@ -49,13 +49,11 @@ class Network():
         self.s.send(b'\x00')
 
     def receive(self):
-        print('receiving')
         while self.receive_flag:
             self.result += self.s.recv(1024)
             if b'\x00' in self.result:
                 ans = json.loads(self.result[:self.result.index(b'\x00')].decode('UTF-8'))
                 self.result = self.result[self.result.index(b'\x00') + 1:]
-                print('received')
                 return ans
 
     def start_receiving(self):

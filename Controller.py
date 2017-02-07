@@ -5,7 +5,7 @@ __author__ = 'pezzati'
 from Network import *
 from AI import AI
 from threading import Thread
-from multiprocessing import Queue
+from queue import Queue
 
 
 class Controller():
@@ -29,10 +29,8 @@ class Controller():
 
         def run():
             while self.sending_flag:
-                print('before event')
                 event = self.queue.get()
                 self.queue.task_done()
-                print('before send')
                 message = {
                     'name': Event.EVENT,
                     'args': [{'type': event.type, 'args': event.args}]
@@ -55,7 +53,6 @@ class Controller():
                 self.conf[self.argNames[i]] = os.environ.get(self.argNames[i])
 
     def handle_message(self, message):
-        print "new message arrived"
         if message[Constants.KEY_NAME] == Constants.MESSAGE_TYPE_INIT:
             self.world._handle_init_message(message)
         elif message[Constants.KEY_NAME] == Constants.MESSAGE_TYPE_TURN:
