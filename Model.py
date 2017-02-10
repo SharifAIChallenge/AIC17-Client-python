@@ -2,6 +2,7 @@ from enum import Enum
 
 import time
 
+__author__ = 'RezaSoltani'
 
 direction_x = [-1, 0, 1, 0]
 direction_y = [0, 1, 0, -1]
@@ -64,46 +65,20 @@ class Teleport(GameObject):
         self.destination_id = datum[3]
 
 
-class World:
-    def __init__(self, queue):
-        self.turn_timeout = None
-        self.turn_start_time = None
-        self.my_game_id = None
-        self.row_number = None
-        self.col_number = None
+class Map:
+    def __init__(self, msg, team):
+        self.team = team
+        self.row_number = 0
+        self.col_number = 0
         self.fishes = dict()
         self.foods = dict()
         self.trashes = dict()
         self.nets = dict()
-        self.game_map = [[]]
         self.teleports = []
-        self.turn_number = 0
-        self.scores = []
-        self.constants = []
-        self.queue = queue
-        self.food_prob = float(0)
-        self.trash_prob = float(0)
-        self.net_prob = float(0)
-        self.net_valid_time = float(0)
-        self.color_cost = float(0)
-        self.sick_cost = float(0)
-        self.update_cost = float(0)
-        self.det_move_cost = float(0)
-        self.kill_queen_score = float(0)
-        self.kill_both_queen_score = float(0)
-        self.kill_fish_score = float(0)
-        self.queen_collision_score = float(0)
-        self.queen_food_score = float(0)
-        self.sick_life_time = float(0)
-        self.power_ratio = float(0)
-        self.end_ratio = float(0)
-        self.disobey_num = float(0)
-        self.food_valid_time = float(0)
-        self.trash_valid_time = float(0)
+        self.game_map = [[]]
+        self._handle_init_message(msg)
 
-    def _handle_init_message(self, msg):
-        init_datum = msg[Constants.KEY_ARGS]
-        self.my_game_id = int(init_datum[0])
+    def _handle_init_message(self, init_datum):
         self.row_number = init_datum[1][0]
         self.col_number = init_datum[1][1]
 
@@ -125,40 +100,6 @@ class World:
 
         for teleport in init_datum[6]:
             self.teleports.append(Teleport(teleport))
-
-        self.constants = init_datum[7]
-        self.turn_timeout = float(self.constants[0])
-        self.food_prob = float(self.constants[1])
-        self.trash_prob = float(self.constants[2])
-        self.net_prob = float(self.constants[3])
-        self.net_valid_time = float(self.constants[4])
-        self.color_cost = float(self.constants[5])
-        self.sick_cost = float(self.constants[6])
-        self.update_cost = float(self.constants[7])
-        self.det_move_cost = float(self.constants[8])
-        self.kill_queen_score = float(self.constants[9])
-        self.kill_both_queen_score = float(self.constants[10])
-        self.kill_fish_score = float(self.constants[11])
-        self.queen_collision_score = float(self.constants[12])
-        self.queen_food_score = float(self.constants[13])
-        self.sick_life_time = float(self.constants[14])
-        self.power_ratio = float(self.constants[15])
-        self.end_ratio = float(self.constants[16])
-        self.disobey_num = float(self.constants[17])
-        self.food_valid_time = float(self.constants[18])
-        self.trash_valid_time = float(self.constants[19])
-
-    def _handle_turn_message(self, msg):
-        self.turn_start_time = int(round(time.time() * 1000))
-
-        current_datum = msg[Constants.KEY_ARGS]
-        self.turn_number = int(current_datum[0])
-        self.scores = current_datum[1]
-
-        diffs = msg[Constants.KEY_ARGS][2]
-        for diff in diffs:
-            self._handle_diff(diff)
-        self._rebuild_game_map()
 
     def _handle_diff(self, diff):
         diff_type = diff[Constants.KEY_TYPE]
@@ -222,20 +163,11 @@ class World:
 
     # Client APIs
 
-    def get_turn_time_passed(self):
-        return int(round(time.time() * 1000)) - self.turn_start_time
+    def get_height(self):
+        return self.row_number
 
-    def get_turn_remaining_time(self):
-        return self.turn_timeout - self.get_turn_time_passed()
-
-    def change_strategy(self, color, front_right, front, front_left, new_strategy):
-        self.queue.put(Event('s', [[color, front_right, front, front_left, new_strategy]]))
-
-    def selective_move(self, fish, move):
-        self.queue.put(Event('m', [[fish.game_id, move.value]]))
-
-    def change_color(self, fish):
-        self.queue.put(Event('c', [[fish.game_id, 1 - fish.color]]))
+    def get_width(self):
+        return self.col_number
 
     def get_fishes_list(self):
         return self.fishes.values()
@@ -252,8 +184,170 @@ class World:
     def get_teleport_list(self):
         return self.teleports
 
-    def get_game_map(self):
+    def get_game_2d_table(self):
         return self.game_map
+
+    def get_my_fishes(self):
+        return [fish for fish in self.fishes if fish.team == self.team]
+
+    def get_opponent_fishes(self):
+        return [fish for fish in self.fishes if fish.team != self.team]
+
+
+class Constant:
+    def __init__(self, msg):
+        self._handle_init_message(msg)
+
+    def _handle_init_message(self, msg):
+        self.constants = msg
+        self.turn_timeout = int(self.constants[0])
+        self.food_prob = float(self.constants[1])
+        self.trash_prob = float(self.constants[2])
+        self.net_prob = float(self.constants[3])
+        self.net_valid_time = float(self.constants[4])
+        self.color_cost = float(self.constants[5])
+        self.sick_cost = float(self.constants[6])
+        self.update_cost = float(self.constants[7])
+        self.det_move_cost = float(self.constants[8])
+        self.kill_queen_score = float(self.constants[9])
+        self.kill_both_queen_score = float(self.constants[10])
+        self.kill_fish_score = float(self.constants[11])
+        self.queen_collision_score = float(self.constants[12])
+        self.queen_food_score = float(self.constants[13])
+        self.sick_life_time = float(self.constants[14])
+        self.power_ratio = float(self.constants[15])
+        self.end_ratio = float(self.constants[16])
+        self.disobey_num = float(self.constants[17])
+        self.food_valid_time = float(self.constants[18])
+        self.trash_valid_time = float(self.constants[19])
+        self.total_turn_number = int(self.constants[20])
+
+    def get_turn_timeout(self):
+        return self.turn_timeout
+
+    def get_food_prob(self):
+        return self.food_prob
+
+    def get_trash_prob(self):
+        return self.trash_prob
+
+    def get_net_prob(self):
+        return self.net_prob
+
+    def get_net_valid_time(self):
+        return self.net_valid_time
+
+    def get_color_cost(self):
+        return self.color_cost
+
+    def get_sick_cost(self):
+        return self.sick_cost
+
+    def get_update_cost(self):
+        return self.update_cost
+
+    def get_det_move_cost(self):
+        return self.det_move_cost
+
+    def get_kill_queen_score(self):
+        return self.turn_timeout
+
+    def get_kill_both_queen_score(self):
+        return self.kill_both_queen_score
+
+    def get_kill_fish_score(self):
+        return self.kill_fish_score
+
+    def get_queen_collision_score(self):
+        return self.queen_collision_score
+
+    def get_queen_food_score(self):
+        return self.queen_food_score
+
+    def get_sick_life_time(self):
+        return self.sick_life_time
+
+    def get_power_ratio(self):
+        return self.power_ratio
+
+    def get_end_ratio(self):
+        return self.end_ratio
+
+    def get_disobey_num(self):
+        return self.disobey_num
+
+    def get_food_valid_time(self):
+        return self.food_valid_time
+
+    def get_trash_valid_time(self):
+        return self.trash_valid_time
+
+    def get_total_turns(self):
+        return self.total_turn_number
+
+
+class World:
+    def __init__(self, queue):
+        self.turn_start_time = None
+        self.my_game_id = 0
+        self.game_map = None
+        self.turn_number = 0
+        self.scores = []
+        self.constants = None
+        self.queue = queue
+
+    def _handle_init_message(self, msg):
+        init_datum = msg[Constants.KEY_ARGS]
+        self.my_game_id = int(init_datum[0])
+        self.game_map = Map(init_datum, self.my_game_id)
+        self.constants = Constant(init_datum[7])
+
+    def _handle_turn_message(self, msg):
+        self.turn_start_time = int(round(time.time() * 1000))
+
+        current_datum = msg[Constants.KEY_ARGS]
+        self.turn_number = int(current_datum[0])
+        self.scores = current_datum[1]
+
+        diffs = msg[Constants.KEY_ARGS][2]
+        for diff in diffs:
+            self.game_map._handle_diff(diff)
+        self.game_map._rebuild_game_map()
+
+    # Client APIs
+
+    def get_turn_time_passed(self):
+        return int(round(time.time() * 1000)) - self.turn_start_time
+
+    def get_turn_remaining_time(self):
+        return self.constants.turn_timeout - self.get_turn_time_passed()
+
+    def get_current_turn_number(self):
+        return self.turn_number
+
+    def get_team_id(self):
+        return self.my_game_id
+
+    def get_my_score(self):
+        return self.scores[0]
+
+    def get_opponent_score(self):
+        return self.scores[1]
+
+    def change_strategy(self, color, front_right, front, front_left, new_strategy):
+        self.queue.put(Event('s', [[color, front_right, front, front_left, new_strategy]]))
+
+    def selective_move(self, fish, move):
+        self.queue.put(Event('m', [[fish.game_id, move.value]]))
+
+    def change_color(self, fish):
+        self.queue.put(Event('c', [[fish.game_id, 1 - fish.color]]))
+
+    def get_map(self):
+        return self.game_map
+
+    def get_constants(self):
+        return self.constants
 
 
 class Event:
