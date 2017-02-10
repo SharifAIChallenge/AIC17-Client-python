@@ -58,13 +58,10 @@ class Fish(GameObject):
                 self.dir -= 4
 
 
-class Teleport:
-    # TODO: make init fix
+class Teleport(GameObject):
     def __init__(self, datum):
-        self.source_row = datum[0]
-        self.source_col = datum[1]
-        self.destination_row = datum[2]
-        self.destination_col = datum[3]
+        GameObject.__init__(self, datum[0], datum[1], datum[2])
+        self.destination_id = datum[3]
 
 
 class World:
@@ -164,7 +161,6 @@ class World:
         self._rebuild_game_map()
 
     def _handle_diff(self, diff):
-     #   print(diff)
         diff_type = diff[Constants.KEY_TYPE]
         diff_args_list = diff[Constants.KEY_ARGS]
         if diff_type == Constants.CHANGE_TYPE_ADD:
@@ -182,8 +178,10 @@ class World:
             for diff_args in diff_args_list:
                 item_game_id = diff_args[0]
                 if item_game_id in self.fishes:
-                    self.fishes[item_game_id].color = diff_args[1]
-                    self.fishes[item_game_id].sick = diff_args[2]
+                    self.fishes[item_game_id].row = diff_args[1]
+                    self.fishes[item_game_id].col = diff_args[2]
+                    self.fishes[item_game_id].color = diff_args[3]
+                    self.fishes[item_game_id].sick = diff_args[4]
 
     def _handle_delete_diff(self, diff_args):
         item_game_id = diff_args[0]
@@ -197,7 +195,6 @@ class World:
             self.nets.pop(item_game_id, None)
 
     def _handle_add_diff(self, diff_args):
-     #   print(diff_args)
         entity_type = diff_args[1]
         item_game_id = diff_args[0]
         if entity_type == 0:
@@ -220,11 +217,8 @@ class World:
             self.game_map[trash.row][trash.col] = trash
         for food in self.get_foods_list():
             self.game_map[food.row][food.col] = food
-        # TODO: add teleports to map
-        # for teleport in self.get_teleport_list():
-        #     print(teleport.source_row, teleport.source_col, teleport.destination_row, teleport.destination_col)
-        #     self.game_map[teleport.source_row][teleport.source_col] = teleport
-        #     self.game_map[teleport.destination_row][teleport.destination_col] = teleport
+        for teleport in self.get_teleport_list():
+            self.game_map[teleport.row][teleport.col] = teleport
 
     # Client APIs
 
