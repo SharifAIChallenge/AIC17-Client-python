@@ -53,12 +53,12 @@ class Controller():
                 self.conf[self.argNames[i]] = os.environ.get(self.argNames[i])
 
     def handle_message(self, message):
-        if message[Constants.KEY_NAME] == Constants.MESSAGE_TYPE_INIT:
+        if message[ServerConstants.KEY_NAME] == ServerConstants.MESSAGE_TYPE_INIT:
             self.world._handle_init_message(message)
-        elif message[Constants.KEY_NAME] == Constants.MESSAGE_TYPE_TURN:
+        elif message[ServerConstants.KEY_NAME] == ServerConstants.MESSAGE_TYPE_TURN:
             self.world._handle_turn_message(message)
             self.do_turn()
-        elif message[Constants.KEY_NAME] == Constants.MESSAGE_TYPE_SHUTDOWN:
+        elif message[ServerConstants.KEY_NAME] == ServerConstants.MESSAGE_TYPE_SHUTDOWN:
             self.terminate()
 
     def do_turn(self):
