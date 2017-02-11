@@ -2,7 +2,7 @@ from enum import Enum
 
 import time
 
-__author__ = 'RezaSoltani'
+__author__ = 'RezaS'
 
 direction_x = [-1, 0, 1, 0]
 direction_y = [0, 1, 0, -1]
@@ -46,20 +46,36 @@ class Trash(Entity):
 
 
 class Slipper(Entity):
-    def __init__(self, datum):
+    def __init__(self, datum, total_valid_time):
         Entity.__init__(self, datum[0], datum[1], datum[2])
+        self.remaining_time = total_valid_time
+
+    def get_remaining_turns(self):
+        return self.remaining_time
 
 
 class Beetle(Entity):
     def __init__(self, datum):
         Entity.__init__(self, datum[0], datum[1], datum[2])
         self.dir = datum[3]
-        self.type = datum[4]
-        self.queen = datum[5]
+        self.beetle_type = datum[4]
+        self.wing = datum[5]
         self.sick = datum[6]
         self.team = datum[7]
 
-    def move(self, param):
+    def get_beetle_type(self):
+        if self.beetle_type == 0:
+            return BeetleType.LOW
+        else:
+            return BeetleType.HIGH
+
+    def is_sick(self):
+        return self.sick
+
+    def has_wing(self):
+        return self.wing
+
+    def _move(self, param):
         if param == Move.turn_left:
             self.dir -= 1
             if self.dir < 0:
@@ -80,8 +96,9 @@ class Teleport(Entity):
 
 
 class Map:
-    def __init__(self, msg, team):
+    def __init__(self, msg, team, constants):
         self.team = team
+        self.constants = constants
         self.row_number = 0
         self.col_number = 0
         self.beetles = dict()
@@ -109,7 +126,7 @@ class Map:
             self.trashes[trash_object.game_id] = trash_object
 
         for slipper in init_datum[5]:
-            slipper_object = Slipper(slipper)
+            slipper_object = Slipper(slipper, self.constants.get_slipper_valid_time())
             self.slippers[slipper_object.game_id] = slipper_object
 
         for teleport in init_datum[6]:
@@ -128,7 +145,7 @@ class Map:
             for diff_args in diff_args_list:
                 item_game_id = diff_args[0]
                 if item_game_id in self.beetles:
-                    self.beetles[item_game_id].move(diff_args[1])
+                    self.beetles[item_game_id]._move(diff_args[1])
         else:
             for diff_args in diff_args_list:
                 item_game_id = diff_args[0]
@@ -223,18 +240,19 @@ class Constants:
         self.sick_cost = int(self.constants[6])
         self.update_cost = int(self.constants[7])
         self.det_move_cost = int(self.constants[8])
-        self.kill_queen_score = int(self.constants[9])
-        self.kill_both_queen_score = int(self.constants[10])
+        self.kill_wing_score = int(self.constants[9])
+        self.kill_both_wing_score = int(self.constants[10])
         self.kill_beetle_score = int(self.constants[11])
-        self.queen_collision_score = int(self.constants[12])
-        self.queen_food_score = int(self.constants[13])
-        self.sick_life_time = int(self.constants[14])
-        self.power_ratio = float(self.constants[15])
-        self.end_ratio = float(self.constants[16])
-        self.disobey_num = int(self.constants[17])
-        self.food_valid_time = int(self.constants[18])
-        self.trash_valid_time = int(self.constants[19])
-        self.total_turn_number = int(self.constants[20])
+        self.wing_collision_score = int(self.constants[12])
+        self.fish_food_score = int(self.constants[13])
+        self.wing_food_score = int(self.constants[14])
+        self.sick_life_time = int(self.constants[15])
+        self.power_ratio = float(self.constants[16])
+        self.end_ratio = float(self.constants[17])
+        self.disobey_num = int(self.constants[18])
+        self.food_valid_time = int(self.constants[19])
+        self.trash_valid_time = int(self.constants[20])
+#        self.total_turn_number = int(self.constants[21])
 
     def get_turn_timeout(self):
         return self.turn_timeout
@@ -263,20 +281,23 @@ class Constants:
     def get_det_move_cost(self):
         return self.det_move_cost
 
-    def get_kill_queen_score(self):
+    def get_kill_wing_score(self):
         return self.turn_timeout
 
-    def get_kill_both_queen_score(self):
-        return self.kill_both_queen_score
+    def get_kill_both_wing_score(self):
+        return self.kill_both_wing_score
 
     def get_kill_beetle_score(self):
         return self.kill_beetle_score
 
-    def get_queen_collision_score(self):
-        return self.queen_collision_score
+    def get_wing_collision_score(self):
+        return self.wing_collision_score
 
-    def get_queen_food_score(self):
-        return self.queen_food_score
+    def get_fish_food_score(self):
+        return self.fish_food_score
+
+    def get_wing_food_score(self):
+        return self.wing_food_score
 
     def get_sick_life_time(self):
         return self.sick_life_time
@@ -313,10 +334,13 @@ class World:
     def _handle_init_message(self, msg):
         init_datum = msg[ServerConstants.KEY_ARGS]
         self.my_game_id = int(init_datum[0])
-        self.game_map = Map(init_datum, self.my_game_id)
         self.constants = Constants(init_datum[7])
+        self.game_map = Map(init_datum, self.my_game_id, self.constants)
 
     def _handle_turn_message(self, msg):
+        for slipper in self.game_map.get_slippers_list():
+            slipper.remaining_time -= 1
+
         self.turn_start_time = int(round(time.time() * 1000))
 
         current_datum = msg[ServerConstants.KEY_ARGS]

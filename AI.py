@@ -2,7 +2,7 @@ from random import randint
 
 from Model import Move, BeetleType
 
-__author__ = 'AmirHS'
+__author__ = 'RezaS'
 
 
 class AI:
