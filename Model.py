@@ -62,6 +62,7 @@ class Beetle(Entity):
         self.wing = datum[5]
         self.sick = datum[6]
         self.team = datum[7]
+        self.power = 0
 
     def get_beetle_type(self):
         if self.beetle_type == 0:
@@ -75,14 +76,26 @@ class Beetle(Entity):
     def has_wing(self):
         return self.wing
 
-    def _move(self, param):
-        if param == Move.turn_left:
+    def get_power(self):
+        return self.power
+
+    def _move(self, param, row_number, col_number):
+        if param == Move.turn_left.value:
             self.dir -= 1
             if self.dir < 0:
                 self.dir += 4
-        elif param == Move.step_forward:
+        elif param == Move.step_forward.value:
+            self.power += 1
             self.row += direction_x[self.dir]
             self.col += direction_y[self.dir]
+            if self.row < 0:
+                self.row += row_number
+            if self.row >= row_number:
+                self.row -= row_number
+            if self.col < 0:
+                self.col += col_number
+            if self.col >= col_number:
+                self.col -= col_number
         else:
             self.dir += 1
             if self.dir >= 4:
@@ -145,7 +158,7 @@ class Map:
             for diff_args in diff_args_list:
                 item_game_id = diff_args[0]
                 if item_game_id in self.beetles:
-                    self.beetles[item_game_id]._move(diff_args[1])
+                    self.beetles[item_game_id]._move(diff_args[1], self.row_number, self.col_number)
         else:
             for diff_args in diff_args_list:
                 item_game_id = diff_args[0]
@@ -177,7 +190,8 @@ class Map:
         elif entity_type == 2:
             self.trashes[item_game_id] = Trash([diff_args[0], diff_args[2], diff_args[3]])
         else:
-            self.slippers[item_game_id] = Slipper([diff_args[0], diff_args[2], diff_args[3]])
+            self.slippers[item_game_id] = Slipper([diff_args[0], diff_args[2], diff_args[3]],
+                                                  self.constants.get_slipper_valid_time())
 
     def _rebuild_game_map(self):
         self.game_map = [[0 for x in range(self.col_number)] for y in range(self.row_number)]
@@ -252,7 +266,10 @@ class Constants:
         self.disobey_num = int(self.constants[18])
         self.food_valid_time = int(self.constants[19])
         self.trash_valid_time = int(self.constants[20])
-#        self.total_turn_number = int(self.constants[21])
+        if len(self.constants) >= 22:
+            self.total_turn_number = int(self.constants[21])
+        else:
+            self.total_turn_number = 1000000000
 
     def get_turn_timeout(self):
         return self.turn_timeout
@@ -373,13 +390,13 @@ class World:
         return int(self.scores[1])
 
     def change_strategy(self, beetle_type, front_right, front, front_left, move_strategy):
-        self.queue.put(Event('s', [[beetle_type, front_right, front, front_left, move_strategy.value]]))
+        self.queue.put(Event('s', [beetle_type, front_right, front, front_left, move_strategy.value]))
 
     def deterministic_move(self, beetle, move):
-        self.queue.put(Event('m', [[beetle.game_id, move.value]]))
+        self.queue.put(Event('m', [beetle.game_id, move.value]))
 
     def change_type(self, beetle, new_type):
-        self.queue.put(Event('c', [[beetle.game_id, new_type]]))
+        self.queue.put(Event('c', [beetle.game_id, new_type]))
 
     def get_map(self):
         return self.game_map
