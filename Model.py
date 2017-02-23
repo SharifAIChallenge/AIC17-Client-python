@@ -123,8 +123,8 @@ class Map:
         self._handle_init_message(msg)
 
     def _handle_init_message(self, init_datum):
-        self.row_number = int(init_datum[1][0])
-        self.col_number = int(init_datum[1][1])
+        self.row_number = int(init_datum[1][1])
+        self.col_number = int(init_datum[1][0])
 
         for beetle in init_datum[2]:
             beetle_object = Beetle(beetle)
@@ -167,6 +167,16 @@ class Map:
                     self.beetles[item_game_id].col = diff_args[2]
                     self.beetles[item_game_id].type = diff_args[3]
                     self.beetles[item_game_id].sick = diff_args[4]
+                elif item_game_id in self.foods:
+                    self.foods[item_game_id].row = diff_args[1]
+                    self.foods[item_game_id].col = diff_args[2]
+                elif item_game_id in self.trashes:
+                    self.trashes[item_game_id].row = diff_args[1]
+                    self.trashes[item_game_id].col = diff_args[2]
+                elif item_game_id in self.slippers:
+                    self.slippers[item_game_id].row = diff_args[1]
+                    self.slippers[item_game_id].col = diff_args[2]
+
 
     def _handle_delete_diff(self, diff_args):
         item_game_id = diff_args[0]
@@ -195,6 +205,7 @@ class Map:
 
     def _rebuild_game_map(self):
         self.game_map = [[0 for x in range(self.col_number)] for y in range(self.row_number)]
+
         for beetle in self.get_beetles_list():
             self.game_map[beetle.row][beetle.col] = beetle
         for slipper in self.get_slippers_list():
