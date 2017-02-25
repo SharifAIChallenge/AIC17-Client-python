@@ -4,8 +4,8 @@ import time
 
 __author__ = 'RezaS'
 
-direction_x = [-1, 0, 1, 0]
-direction_y = [0, 1, 0, -1]
+direction_x = [0, -1, 0, 1]
+direction_y = [1, 0, -1, 0]
 
 
 class Move(Enum):
@@ -80,7 +80,7 @@ class Beetle(Entity):
         return self.power
 
     def _move(self, param, row_number, col_number):
-        if param == Move.turn_left.value:
+        if param == Move.turn_right.value:
             self.dir -= 1
             if self.dir < 0:
                 self.dir += 4
