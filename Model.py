@@ -244,10 +244,10 @@ class Map:
         return self.game_map
 
     def get_my_beetles(self):
-        return [beetle for beetle in self.beetles if beetle.team == self.team]
+        return [beetle for beetle in self.beetles.values() if beetle.team == self.team]
 
     def get_opponent_beetles(self):
-        return [beetle for beetle in self.beetles if beetle.team != self.team]
+        return [beetle for beetle in self.beetles.values() if beetle.team != self.team]
 
 
 class Constants:
