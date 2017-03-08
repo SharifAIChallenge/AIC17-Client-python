@@ -281,6 +281,14 @@ class Constants:
             self.total_turn_number = int(self.constants[21])
         else:
             self.total_turn_number = 1000000000
+        if len(self.constants) >= 23:
+            self.deterministic_move_limit = int(self.constants[22])
+        else:
+            self.deterministic_move_limit = 50
+        if len(self.constants) >= 24:
+            self.change_type_limit = int(self.constants[23])
+        else:
+            self.change_type_limit = 50
 
     def get_turn_timeout(self):
         return self.turn_timeout
@@ -347,6 +355,12 @@ class Constants:
 
     def get_total_turns(self):
         return self.total_turn_number
+
+    def get_deterministic_move_limit(self):
+        return self.deterministic_move_limit
+
+    def get_change_type_limit(self):
+        return self.change_type_limit
 
 
 class World:
